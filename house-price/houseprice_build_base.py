@@ -95,31 +95,15 @@ test_core = test_raw.drop(['PoolQC','Fence','MiscFeature','Alley','FireplaceQu']
 
 train_core.SalePrice = np.log1p(train_core.SalePrice)
 
-"""##Corelation analysis"""
+"""##Label Encoding"""
 
-# Create a heatmap correlation to find relevant variables
-corr = train_core.corr()
-plt.figure(figsize=(12,12))
-sns.heatmap(corr)
-plt.yticks(rotation=0, size=7)
-plt.xticks(rotation=90, size=7)
-plt.show()
-
-"""##Show most corelation"""
-
-# Select columns with a correlation > 0.5
-rel_vars = corr.SalePrice[(corr.SalePrice > 0.5)]
-rel_cols = list(rel_vars.index.values)
-
-corr2 = train_core[rel_cols].corr()
-plt.figure(figsize=(8,8))
-hm = sns.heatmap(corr2, annot=True, annot_kws={'size':10})
-plt.yticks(rotation=0, size=10)
-plt.xticks(rotation=90, size=10)
-plt.show()
-
-train_core = train_core[rel_cols]
-test_core  = test_core[rel_cols[:-1]]
+from sklearn.preprocessing import LabelEncoder
+for i in range(train_core.shape[1]):
+    if train_core.iloc[:,i].dtypes == object:
+        lbl = LabelEncoder()
+        lbl.fit(list(train_core.iloc[:,i].values) + list(test_core.iloc[:,i].values))
+        train_core.iloc[:,i] = lbl.transform(list(train_core.iloc[:,i].values))
+        test_core.iloc[:,i] = lbl.transform(list(test_core.iloc[:,i].values))
 
 train_core.head()
 
@@ -129,7 +113,9 @@ train_core.GarageYrBlt.describe()
 
 train_core.isnull().sum()[train_core.isnull().sum() > 0]
 
-final_imputer = SimpleImputer(strategy='median')
+"""##Handle Missing Value"""
+
+final_imputer = SimpleImputer()
 X = train_core.iloc[:,:-1].values
 X = pd.DataFrame(final_imputer.fit_transform(X))
 y = train_core.iloc[:, -1].values
@@ -163,5 +149,5 @@ sub['Id'] = test_ID
 sub['SalePrice'] = np.exp(predictions)
 sub.to_csv('submission.csv',index=False)
 
-!kaggle competitions submit house-prices-advanced-regression-techniques -f submission.csv -m "base"
+!kaggle competitions submit house-prices-advanced-regression-techniques -f submission.csv -m "lable encoding"
 
