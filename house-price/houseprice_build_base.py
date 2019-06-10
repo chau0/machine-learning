@@ -95,33 +95,31 @@ test_core = test_raw.drop(['PoolQC','Fence','MiscFeature','Alley','FireplaceQu']
 
 train_core.SalePrice = np.log1p(train_core.SalePrice)
 
-"""##Label Encoding"""
+"""##One Hot Encoding"""
 
-from sklearn.preprocessing import LabelEncoder
-for i in range(train_core.shape[1]):
-    if train_core.iloc[:,i].dtypes == object:
-        lbl = LabelEncoder()
-        lbl.fit(list(train_core.iloc[:,i].values) + list(test_core.iloc[:,i].values))
-        train_core.iloc[:,i] = lbl.transform(list(train_core.iloc[:,i].values))
-        test_core.iloc[:,i] = lbl.transform(list(test_core.iloc[:,i].values))
+price_col = train_core.iloc[:, -1]
+train_core = train_core.iloc[:,:-1]
+train_ohe = pd.get_dummies(train_core)
+test_ohe = pd.get_dummies(test_core)
+train_ohe, test_ohe = train_ohe.align(test_ohe,
+                                       join='left', 
+                                            axis=1)
 
-train_core.head()
+train_ohe.head()
 
-test_core.head()
+test_ohe.head()
 
-train_core.GarageYrBlt.describe()
-
-train_core.isnull().sum()[train_core.isnull().sum() > 0]
+train_ohe.isnull().sum()[train_ohe.isnull().sum() > 0]
 
 """##Handle Missing Value"""
 
 final_imputer = SimpleImputer()
-X = train_core.iloc[:,:-1].values
+X = train_ohe.values
 X = pd.DataFrame(final_imputer.fit_transform(X))
-y = train_core.iloc[:, -1].values
+y = price_col.values
 
-test_core = pd.DataFrame(final_imputer.transform(test_core))
-X_test = test_core.values
+test_ohe = pd.DataFrame(final_imputer.transform(test_ohe))
+X_test = test_ohe.values
 
 def split_vals(a,n): return a[:n].copy(), a[n:].copy()
 
@@ -149,5 +147,5 @@ sub['Id'] = test_ID
 sub['SalePrice'] = np.exp(predictions)
 sub.to_csv('submission.csv',index=False)
 
-!kaggle competitions submit house-prices-advanced-regression-techniques -f submission.csv -m "lable encoding"
+!kaggle competitions submit house-prices-advanced-regression-techniques -f submission.csv -m "one hot encoding"
 
